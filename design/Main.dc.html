@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ECLIPSE</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500&amp;display=swap">
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+body{margin:0}
+a{color:#8d8a83}a:hover{color:#e9e5dc}
+.ec{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.ec:focus{outline:none}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.g{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;font-family:'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif;transition:color 1.1s ease,opacity 2.4s ease}
+.t{margin:0;font-size:13px;line-height:1.2;letter-spacing:0.01em;font-weight:400}
+.b{font-weight:500}
+.tab{font-variant-numeric:tabular-nums}
+.btn{-webkit-appearance:none;appearance:none;background:none;border:0;margin:0;padding:0;color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;pointer-events:auto;transition:opacity .45s ease}
+.btn:hover{opacity:1 !important}
+.btn:focus-visible{outline:1px solid currentColor;outline-offset:3px}
+.tl{position:absolute;top:24px;left:28px}
+.tr{position:absolute;top:16px;right:20px;display:flex;align-items:center}
+.chip{display:flex;align-items:center;justify-content:center;width:28px;height:28px}
+.chip span{display:block;width:9px;height:9px;box-sizing:border-box;border:1px solid currentColor}
+.bl{position:absolute;bottom:24px;left:28px;display:flex;gap:2.2em}
+.br{position:absolute;bottom:24px;right:28px;display:flex;gap:2.2em}
+.rail{position:absolute;top:96px;bottom:96px;right:16px;width:64px;pointer-events:auto;cursor:ns-resize;touch-action:none}
+.line{position:absolute;top:0;bottom:0;right:12px;width:1px;background:currentColor;opacity:0.2}
+.thumb{position:absolute;top:0;right:11px;width:3px;height:40px;background:currentColor;will-change:transform}
+.tick{position:absolute;right:12px;width:9px;height:1px;background:currentColor;opacity:0.45}
+.lab{position:absolute;right:28px;font-size:10px;line-height:1;padding:6px 0;margin-top:-11px}
+@media (max-width:760px){.tl{left:18px;top:18px}.bl{left:18px;bottom:18px}.br{right:18px;bottom:18px}.rail{right:4px;top:80px;bottom:80px}.tr{top:10px;right:10px}}
+</style>
+</helmet>
+<main ref="{{ setRoot }}" data-ec="root" class="ec" aria-label="ECLIPSE — an interactive total solar eclipse" style="position: relative; width: 100%; height: 100vh; overflow: hidden; background: #000000; touch-action: none; cursor: crosshair">
+<canvas ref="{{ setCanvas }}" data-ec="canvas" aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; background: #000000"></canvas>
+<p class="sr">A total solar eclipse rendered in real time. Move the pointer to attract the corona, press and hold to intensify the pull, and scroll or drag the rail on the right to travel through seven phases.</p>
+<div class="g" style="color: {{ ink }}; opacity: {{ uiOp }}">
+<h1 class="t b tl">Eclipse</h1>
+<div class="tr" role="group" aria-label="Colour">
+<button type="button" class="btn chip" onClick="{{ pickWhite }}" aria-label="White" aria-pressed="{{ wPressed }}" style="opacity: {{ wOp }}"><span style="background: {{ wFill }}"></span></button>
+<button type="button" class="btn chip" onClick="{{ pickRed }}" aria-label="Red" aria-pressed="{{ rPressed }}" style="opacity: {{ rOp }}"><span style="background: {{ rFill }}"></span></button>
+<button type="button" class="btn chip" onClick="{{ pickBlue }}" aria-label="Blue" aria-pressed="{{ bPressed }}" style="opacity: {{ bOp }}"><span style="background: {{ bFill }}"></span></button>
+</div>
+<div data-ec="rail" class="rail" role="group" aria-label="Phases">
+<div class="line"></div>
+<sc-for list="{{ ticks }}" as="tk" hint-placeholder-count="7">
+<div class="tick" style="top: {{ tk.top }}"></div>
+<button type="button" class="btn t tab lab" onClick="{{ tk.go }}" aria-label="{{ tk.aria }}" aria-current="{{ tk.cur }}" style="top: {{ tk.top }}; opacity: {{ tk.op }}">{{ tk.no }}</button>
+</sc-for>
+<div data-ec="thumb" class="thumb"></div>
+</div>
+<p class="t tab bl"><span>{{ phaseNo }}</span><span>{{ phaseName }}</span></p>
+<p class="t tab br" aria-hidden="true"><span>{{ dist }}</span><span>{{ hold }}</span></p>
+</div>
+<p ref="{{ setFallback }}" data-ec="fallback" style="position: absolute; top: 50%; left: 0; right: 0; margin: 0; text-align: center; font-family: 'Inter Tight', Helvetica, Arial, sans-serif; font-size: 13px; color: #8d8a83; opacity: 0; pointer-events: none">This work needs a browser with WebGL 2.</p>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"intensity":{"editor":"range","default":0.95,"min":0.4,"max":1.8,"step":0.05,"section":"Light"},"grain":{"editor":"range","default":0.85,"min":0,"max":1,"step":0.05,"section":"Plate"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    if (!this._refFns) {
+      this._els = {};
+      const mk = (k) => (el) => { if (el) this._els[k] = el; };
+      this._refFns = { setRoot: mk('root'), setCanvas: mk('canvas'), setFallback: mk('fallback') };
+      // number, name, rail position (phase start), jump target
+      this._PH = [
+        ['01', 'Absence', 0.0, 0.0], ['02', 'Revelation', 0.1, 0.15], ['03', 'Alignment', 0.22, 0.30], ['04', 'Attraction', 0.4, 0.47],
+        ['05', 'Threshold', 0.56, 0.655], ['06', 'Absorption', 0.71, 0.79], ['07', 'Dark sun', 0.86, 1.0]
+      ];
+    }
+    const st = this.state || {};
+    const theme = st.theme || 'white';
+    const inv = !!st.inv;
+    const phase = st.phase || 0;
+    const dim = inv ? '0.7' : '0.55';
+    const pick = (t) => () => this.setState({ theme: t });
+    const ticks = this._PH.map((p, i) => ({
+      no: p[0], aria: p[0] + ' ' + p[1],
+      top: 'calc(20px + ' + p[3] + ' * (100% - 40px))',
+      cur: i === phase ? 'step' : 'false',
+      op: i === phase ? '1' : dim,
+      go: () => { if (this._api) this._api.jump(p[3]); }
+    }));
+    const sel = (t) => theme === t;
+    return Object.assign({}, this._refFns, {
+      ink: inv ? (theme === 'blue' ? '#f2f0ea' : '#0a0a0a') : '#e9e5dc',
+      uiOp: st.ready ? '1' : '0',
+      phaseNo: this._PH[phase][0],
+      phaseName: this._PH[phase][1],
+      ticks: ticks,
+      pickWhite: pick('white'), pickRed: pick('red'), pickBlue: pick('blue'),
+      wOp: sel('white') ? '1' : dim, rOp: sel('red') ? '1' : dim, bOp: sel('blue') ? '1' : dim,
+      wPressed: sel('white') ? 'true' : 'false', rPressed: sel('red') ? 'true' : 'false', bPressed: sel('blue') ? 'true' : 'false',
+      wFill: sel('white') ? 'currentColor' : 'transparent',
+      rFill: sel('red') ? (inv ? 'currentColor' : '#ff2b14') : 'transparent',
+      bFill: sel('blue') ? (inv ? 'currentColor' : '#2950ff') : 'transparent',
+      dist: st.dist || '—',
+      hold: st.hold || '(0.0)'
+    });
+  }
+
+  componentDidMount() { this._tries = 0; this._start(); }
+
+  componentWillUnmount() {
+    this._dead = true;
+    if (this._raf0) cancelAnimationFrame(this._raf0);
+    if (this._readyT) clearTimeout(this._readyT);
+    if (this._api) this._api.stop();
+  }
+
+  _find(k) {
+    const els = this._els || {};
+    if (els[k]) return els[k];
+    const sel = '[data-ec="' + k + '"]';
+    return (els.root && els.root.querySelector(sel)) || document.querySelector(sel);
+  }
+
+  _start() {
+    if (this._dead || this._api) return;
+    const root = this._find('root'), canvas = this._find('canvas');
+    if (!root || !canvas) {
+      if (this._tries++ < 180) this._raf0 = requestAnimationFrame(() => this._start());
+      return;
+    }
+    const fallback = this._find('fallback');
+    const restart = () => {
+      if (this._dead) return;
+      if (this._api) this._api.stop(true);
+      this._api = null;
+      this._start();
+    };
+    const report = (o) => {
+      if (this._dead) return;
+      const st = this.state || {};
+      let changed = false;
+      for (const k in o) { if (st[k] !== o[k]) { changed = true; break; } }
+      if (changed) this.setState(o);
+    };
+    try {
+      this._api = this._engine({ root: root, canvas: canvas, fallback: fallback }, () => this.props || {}, () => (this.state && this.state.theme) || 'white', report, restart);
+      this._readyT = setTimeout(() => { if (!this._dead) this.setState({ ready: true }); }, 1400);
+    } catch (err) {
+      console.error(err);
+      if (fallback) fallback.style.opacity = '1';
+    }
+  }
+
+  _engine(E, getProps, getTheme, report, restart) {
+    const canvas = E.canvas, root = E.root;
+    const mm = (q) => { try { return window.matchMedia(q).matches; } catch (e) { return false; } };
+    const REDUCE = mm('(prefers-reduced-motion: reduce)');
+    const COARSE = mm('(pointer: coarse)');
+    const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' });
+    if (!gl) throw new Error('ECLIPSE: WebGL 2 unavailable');
+    try { root.tabIndex = 0; } catch (e) {}
+
+    const HALF = !!gl.getExtension('EXT_color_buffer_float');
+    const IFMT = HALF ? gl.RGBA16F : gl.RGBA8;
+    const TYPE = HALF ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
+    const MAXS = gl.getParameter(gl.MAX_SAMPLES) || 0;
+    const PI = Math.PI, TAU = Math.PI * 2;
+    const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+    const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+    const num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
+    const angd = (a, b) => { let d = (a - b + PI) % TAU; if (d < 0) d += TAU; return d - PI; };
+
+    // ------------------------------------------------------------------ shaders
+    const VS_FULL = `#version 300 es
+out vec2 vUv;
+void main() {
+  vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+  vUv = p;
+  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+    const NOISE = `
+vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
+vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+float snoise(vec3 v) {
+  const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+  vec3 i = floor(v + dot(v, C.yyy));
+  vec3 x0 = v - i + dot(i, C.xxx);
+  vec3 g = step(x0.yzx, x0.xyz);
+  vec3 l = 1.0 - g;
+  vec3 i1 = min(g.xyz, l.zxy);
+  vec3 i2 = max(g.xyz, l.zxy);
+  vec3 x1 = x0 - i1 + C.xxx;
+  vec3 x2 = x0 - i2 + C.yyy;
+  vec3 x3 = x0 - D.yyy;
+  i = mod289(i);
+  vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+  float n_ = 0.142857142857;
+  vec3 ns = n_ * D.wyz - D.xzx;
+  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+  vec4 x_ = floor(j * ns.z);
+  vec4 y_ = floor(j - 7.0 * x_);
+  vec4 x = x_ * ns.x + ns.yyyy;
+  vec4 y = y_ * ns.x + ns.yyyy;
+  vec4 h = 1.0 - abs(x) - abs(y);
+  vec4 b0 = vec4(x.xy, y.xy);
+  vec4 b1 = vec4(x.zw, y.zw);
+  vec4 s0 = floor(b0) * 2.0 + 1.0;
+  vec4 s1 = floor(b1) * 2.0 + 1.0;
+  vec4 sh = -step(h, vec4(0.0));
+  vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+  vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+  vec3 p0 = vec3(a0.xy, h.x);
+  vec3 p1 = vec3(a0.zw, h.y);
+  vec3 p2 = vec3(a1.xy, h.z);
+  vec3 p3 = vec3(a1.zw, h.w);
+  vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+  p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+  vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+  m = m * m;
+  return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+}
+`;
+
+    // The diffuse corona (light intensity only; colour is applied on the plate).
+    const FS_CORONA = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 o;
+uniform vec4 uCam;
+uniform vec4 uWell;
+uniform vec4 uLA;
+uniform vec4 uLW;
+uniform vec4 uLS;
+uniform vec4 uPA;
+uniform vec4 uPS;
+uniform float uT;
+uniform float uPx;
+uniform float uReveal;
+uniform float uExt;
+uniform float uSwirl;
+` + NOISE + `
+float angd(float a, float b) { return mod(a - b + 3.14159265, 6.28318531) - 3.14159265; }
+float lod(float f) { return clamp(2.0 - f * uPx * 5.0, 0.0, 1.0); }
+float revealFn(float th) { return 0.5 + 0.5 * (0.55 * sin(2.0 * th + 1.3) + 0.3 * sin(5.0 * th - 0.4) + 0.15 * sin(11.0 * th + 2.0)); }
+float patchFn(float th, float t) { return 0.5 + 0.5 * (0.5 * sin(3.0 * th + 0.7 + t * 0.011) + 0.3 * sin(7.0 * th - 1.9 - t * 0.017) + 0.2 * sin(13.0 * th + 0.4 + t * 0.023)); }
+void main() {
+  vec2 p = uCam.xy + (vUv * 2.0 - 1.0) * vec2(uCam.z * uCam.w, uCam.z);
+  if (length(p) < 0.975) { o = vec4(0.0, 0.0, 0.0, 1.0); return; }
+  vec2 d = p - uWell.xy;
+  float k = uWell.z * exp(-dot(d, d) / (uWell.w * uWell.w)) * smoothstep(1.0, 1.0 + 0.45 * uWell.w, length(p));
+  vec2 q = p + d * k;
+  float r = length(q);
+  float inside = r < 1.0 ? exp(-(1.0 - r) * 14.0) : 1.0;
+  float rq = max(r, 1.0);
+  vec2 dir = q / max(r, 1e-4);
+  float th = atan(dir.y, dir.x);
+  float hp = rq - 1.0;
+  float h = hp / uExt;
+  if (h > 10.0) { o = vec4(0.0, 0.0, 0.0, 1.0); return; }
+  float lr = log(rq);
+  float t = uT;
+
+  float w1 = snoise(vec3(dir * 2.3, lr * 2.2 - t * 0.05));
+  float w2 = snoise(vec3(dir * 5.1 + 3.1, lr * 4.0 - t * 0.08));
+  float bend = (w1 * 0.035 + w2 * 0.018) * smoothstep(0.0, 0.7, h);
+  bend += uSwirl * (1.25 * h / (1.0 + 0.5 * h) + 0.4 * w1 * smoothstep(0.0, 0.5, h) + t * 0.004);
+  float cb = cos(bend);
+  float sb = sin(bend);
+  vec2 dw = vec2(cb * dir.x - sb * dir.y, sb * dir.x + cb * dir.y);
+  float thw = th + bend;
+
+  float lobes = 0.0;
+  for (int i = 0; i < 4; i++) {
+    float w = uLW[i] / (1.0 + h * 1.8) + 0.035;
+    float da = angd(thw, uLA[i]);
+    lobes += uLS[i] * exp(-da * da / (w * w));
+  }
+  lobes = mix(lobes, 0.55 + 0.25 * w2, uSwirl * 0.75);
+  float dark = mix(0.06, 1.0, smoothstep(0.28, 0.76, patchFn(thw, t)));
+  dark = mix(dark, 0.55 + 0.45 * dark, uSwirl);
+
+  float st = 0.0;
+  float sw = 0.0;
+  float f = 9.0;
+  float a = 1.0;
+  for (int i = 0; i < 5; i++) {
+    float l = lod(f);
+    if (l > 0.0) {
+      float fi = float(i);
+      st += a * l * snoise(vec3(dw * f, lr * (1.4 + fi * 0.7) - t * (0.018 + 0.01 * fi) + fi * 7.31));
+      sw += a * l;
+    }
+    f *= 2.7;
+    a *= 0.6;
+  }
+  st /= max(sw, 1e-3);
+  float hair = smoothstep(-0.25, 0.75, st);
+  hair *= hair;
+
+  float inner = 0.95 * exp(-h * 7.5) + 0.22 * exp(-h * 2.3) + 0.03 * exp(-h * 0.7);
+  float stre = lobes * 0.75 * exp(-h * 1.0);
+  float wing = 0.3 + 0.7 * min(lobes + 0.3, 1.0);
+  float corona = (inner * wing * (0.3 + 0.95 * hair) * (1.0 + 0.7 * uSwirl) + stre * (0.1 + 1.3 * hair)) * dark;
+  corona *= exp(-h * 1.5 * uSwirl);
+
+  float prom = 0.0;
+  if (hp < 0.16 && uSwirl < 0.99) {
+    float reg = 0.0;
+    for (int i = 0; i < 4; i++) {
+      float da = angd(th, uPA[i]);
+      reg += uPS[i] * exp(-da * da / 0.012);
+    }
+    if (reg > 0.02) {
+      vec2 lc = vec2(th, hp);
+      vec2 wq = vec2(snoise(vec3(lc * vec2(9.0, 30.0), t * 0.04)), snoise(vec3(lc * vec2(9.0, 30.0) + 13.0, t * 0.04)));
+      vec2 lw = lc + wq * vec2(0.03, 0.014);
+      float env = smoothstep(0.35, 0.8, snoise(vec3(lw * vec2(16.0, 24.0), t * 0.02 + 3.0)) * 0.5 + 0.5);
+      float n1 = snoise(vec3(lw * vec2(140.0, 20.0), t * 0.05));
+      float n2 = lod(420.0) * snoise(vec3(lw * vec2(420.0, 55.0), t * 0.08 + 5.0));
+      float threads = pow(clamp(1.0 - abs(n1 + 0.35 * n2), 0.0, 1.0), 5.0);
+      threads = mix(0.3, threads, lod(140.0));
+      float hmax = 0.02 + 0.07 * min(reg, 1.0);
+      prom = min(reg, 1.0) * env * (0.3 + 1.5 * threads) * exp(-hp / hmax * 1.5) * 1.7 * (1.0 - uSwirl);
+    }
+  }
+
+  float rw = max(0.0035, uPx * 0.9);
+  float rim = exp(-hp / rw) * (0.0035 / rw) * (0.5 + 0.5 * (snoise(vec3(dir * 34.0, t * 0.03)) * 0.5 + 0.5));
+  rim *= mix(0.35, 1.0, dark);
+
+  float thr = 1.0 - uReveal * 1.3;
+  float reveal = smoothstep(thr, thr + 0.2, revealFn(th));
+  float I = (corona + prom + rim * 1.5) * reveal * inside;
+  o = vec4(vec3(I), 1.0);
+}`;
+
+    const FS_COPY = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 o;
+uniform sampler2D uTex;
+void main() { o = vec4(texture(uTex, vUv).rgb, 1.0); }`;
+
+    const FS_DOWN = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 o;
+uniform sampler2D uTex;
+uniform vec2 uTexel;
+void main() {
+  vec3 c = texture(uTex, vUv + uTexel * vec2(-1.0, -1.0)).rgb + texture(uTex, vUv + uTexel * vec2(1.0, -1.0)).rgb
+         + texture(uTex, vUv + uTexel * vec2(-1.0, 1.0)).rgb + texture(uTex, vUv + uTexel * vec2(1.0, 1.0)).rgb;
+  o = vec4(c * 0.25, 1.0);
+}`;
+
+    const FS_BLUR = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 o;
+uniform sampler2D uTex;
+uniform vec2 uDir;
+void main() {
+  vec3 c = texture(uTex, vUv).rgb * 0.227027;
+  c += (texture(uTex, vUv + uDir * 1.3846153846).rgb + texture(uTex, vUv - uDir * 1.3846153846).rgb) * 0.3162162162;
+  c += (texture(uTex, vUv + uDir * 3.2307692308).rgb + texture(uTex, vUv - uDir * 3.2307692308).rgb) * 0.0702702703;
+  o = vec4(c, 1.0);
+}`;
+
+    // The plate: light becomes colour (or ink on paper), the exact black disc, grain.
+    const FS_COMP = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 o;
+uniform sampler2D uScene;
+uniform sampler2D uBloom;
+uniform vec4 uCam;
+uniform vec2 uRes;
+uniform float uExp;
+uniform float uGrain;
+uniform float uSeed;
+uniform float uBloomK;
+uniform float uInv;
+uniform vec3 uGround;
+uniform vec3 uInk;
+float hash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float vnoise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+void main() {
+  vec2 p = uCam.xy + (vUv * 2.0 - 1.0) * vec2(uCam.z * uCam.w, uCam.z);
+  vec3 c = texture(uScene, vUv).rgb + texture(uBloom, vUv).rgb * uBloomK;
+  float L = 1.0 - exp(-c.r * uExp);
+  float tooth = hash(floor(gl_FragCoord.xy * 0.75));
+  float mott = vnoise(gl_FragCoord.xy * 0.012) * 0.6 + vnoise(gl_FragCoord.xy * 0.045) * 0.4;
+  L = mix(L, max(L - 0.06, 0.0) / 0.94, uInv);
+  L = clamp(L * mix(1.0, 0.78 + 0.34 * tooth + 0.12 * mott, uInv), 0.0, 1.0);
+  vec3 col = mix(uGround, uInk, L);
+  col *= 1.0 - uInv * 0.06 * (mott - 0.5);
+  float g = hash(gl_FragCoord.xy + uSeed * vec2(131.7, 71.3)) + hash(gl_FragCoord.xy * 1.37 + uSeed * vec2(17.1, 93.7)) - 1.0;
+  col += g * uGrain * mix(0.006 + 0.17 * L * (1.0 - L), 0.03, uInv);
+  col = max(col, 0.0);
+  float pw = 2.0 * uCam.z / uRes.y;
+  float disc = smoothstep(1.0 - pw * 0.7, 1.0 + pw * 0.7, length(p));
+  col *= disc;
+  vec2 v = vUv - 0.5;
+  col *= 1.0 - dot(v, v) * mix(0.55, 0.28, uInv);
+  o = vec4(col, 1.0);
+}`;
+
+    const VS_LINE = `#version 300 es
+layout(location = 0) in vec3 aP;
+uniform vec4 uCam;
+out float vA;
+void main() {
+  gl_Position = vec4((aP.xy - uCam.xy) / vec2(uCam.z * uCam.w, uCam.z), 0.0, 1.0);
+  vA = aP.z;
+}`;
+
+    const FS_LINE = `#version 300 es
+precision highp float;
+in float vA;
+out vec4 o;
+uniform float uGain;
+void main() { o = vec4(vec3(vA * uGain), 1.0); }`;
+
+    const VS_POINT = `#version 300 es
+layout(location = 0) in vec4 aP;
+uniform vec4 uCam;
+uniform float uSize;
+out float vA;
+void main() {
+  gl_Position = vec4((aP.xy - uCam.xy) / vec2(uCam.z * uCam.w, uCam.z), 0.0, 1.0);
+  gl_PointSize = max(1.0, aP.w * uSize);
+  vA = aP.z;
+}`;
+
+    const FS_POINT = `#version 300 es
+precision highp float;
+in float vA;
+out vec4 o;
+uniform float uGain;
+void main() {
+  vec2 c = gl_PointCoord - 0.5;
+  float a = smoothstep(0.5, 0.05, length(c));
+  o = vec4(vec3(vA * a * uGain), 1.0);
+}`;
+
+    const compile = (type, src) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('ECLIPSE shader: ' + gl.getShaderInfoLog(s));
+      return s;
+    };
+    const program = (vs, fs) => {
+      const p = gl.createProgram();
+      gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+      gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('ECLIPSE link: ' + gl.getProgramInfoLog(p));
+      const u = {};
+      const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+      for (let i = 0; i < n; i++) {
+        const nm = gl.getActiveUniform(p, i).name;
+        u[nm.replace(/\[0\]$/, '')] = gl.getUniformLocation(p, nm);
+      }
+      return { p: p, u: u };
+    };
+
+    const PR_CORONA = program(VS_FULL, FS_CORONA);
+    const PR_COPY = program(VS_FULL, FS_COPY);
+    const PR_DOWN = program(VS_FULL, FS_DOWN);
+    const PR_BLUR = program(VS_FULL, FS_BLUR);
+    const PR_COMP = program(VS_FULL, FS_COMP);
+    const PR_LINE = program(VS_LINE, FS_LINE);
+    const PR_POINT = program(VS_POINT, FS_POINT);
+
+    // ------------------------------------------------------------------ colour: white, red, blue
+    const THEMES = {
+      white: { light: [0.92, 0.9, 0.875], paper: [0.925, 0.905, 0.862] },
+      red: { light: [1.0, 0.17, 0.08], paper: [0.9, 0.16, 0.09] },
+      blue: { light: [0.17, 0.32, 1.0], paper: [0.07, 0.19, 0.92] }
+    };
+    const INK = [0.035, 0.035, 0.04];
+    const curLight = THEMES.white.light.slice(), curPaper = THEMES.white.paper.slice();
+
+    // ------------------------------------------------------------------ the corona's anatomy
+    const LA = new Float32Array([2.52, -0.66, 1.18, -2.02]);
+    const LW = new Float32Array([0.34, 0.38, 0.20, 0.24]);
+    const LS = new Float32Array([1.00, 0.85, 0.32, 0.26]);
+    const PA = new Float32Array([2.30, 0.30, -1.45, -2.75]);
+    const PS = new Float32Array([1.00, 0.70, 0.55, 0.35]);
+    const LIMB = 2.42;
+    const LDX = Math.cos(LIMB), LDY = Math.sin(LIMB);
+    const lobeAt = (th, h) => {
+      let s = 0;
+      for (let k = 0; k < 4; k++) {
+        const w = LW[k] / (1 + h * 1.8) + 0.035;
+        const d = angd(th, LA[k]);
+        s += LS[k] * Math.exp(-d * d / (w * w));
+      }
+      return s;
+    };
+    const revealFn = (th) => 0.5 + 0.5 * (0.55 * Math.sin(2 * th + 1.3) + 0.3 * Math.sin(5 * th - 0.4) + 0.15 * Math.sin(11 * th + 2.0));
+    const patchFn = (th, t) => 0.5 + 0.5 * (0.5 * Math.sin(3 * th + 0.7 + t * 0.011) + 0.3 * Math.sin(7 * th - 1.9 - t * 0.017) + 0.2 * Math.sin(13 * th + 0.4 + t * 0.023));
+
+    let seed = 1337;
+    const rand = () => {
+      seed = (seed + 0x6D2B79F5) | 0;
+      let t = seed;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const lobeAngle = (bias) => {
+      let th = 0;
+      for (let g = 0; g < 50; g++) {
+        th = (rand() * 2 - 1) * PI;
+        if (rand() * 1.25 < bias + 0.9 * lobeAt(th, 0)) break;
+      }
+      return th;
+    };
+
+    // ------------------------------------------------------------------ strands of light
+    const NP = 18;
+    const INV = 1 / (NP - 1);
+    const NF = COARSE ? 1600 : 3000;
+    const F32 = (n) => new Float32Array(n);
+    const fTh = F32(NF), fLen = F32(NF), fCurL = F32(NF), fBright = F32(NF), fPh = F32(NF), fPh2 = F32(NF);
+    const fF1 = F32(NF), fF2 = F32(NF), fF3 = F32(NF), fWob = F32(NF), fCurl = F32(NF), fConv = F32(NF), fLobe = F32(NF);
+    const fCut = F32(NF), fRev = F32(NF);
+    for (let i = 0; i < NF; i++) {
+      const th = lobeAngle(0.2);
+      const lw = Math.min(1, lobeAt(th, 0));
+      let L = 0.035 + 0.2 * Math.pow(rand(), 2.4) + lw * (0.16 + 1.25 * Math.pow(rand(), 1.8));
+      if (rand() < 0.035) L += 0.25 + 0.7 * rand();
+      let best = 0, bw = 0;
+      for (let k = 0; k < 4; k++) {
+        const d = angd(th, LA[k]);
+        const w = LS[k] * Math.exp(-d * d / (LW[k] * LW[k] * 2.5));
+        if (w > bw) { bw = w; best = k; }
+      }
+      fTh[i] = th; fLen[i] = L; fCurL[i] = L;
+      fConv[i] = Math.min(1, bw) * 0.55; fLobe[i] = angd(LA[best], th);
+      fBright[i] = (0.22 + 0.78 * Math.pow(rand(), 1.6)) * (0.45 + 0.55 * lw);
+      fPh[i] = rand() * TAU; fPh2[i] = rand() * TAU;
+      fF1[i] = 0.05 + 0.12 * rand(); fF2[i] = 0.12 + 0.22 * rand(); fF3[i] = 0.015 + 0.05 * rand();
+      fWob[i] = 0.004 + 0.018 * rand();
+      fCurl[i] = (rand() * 2 - 1) * 0.12;
+      fCut[i] = 1.2;
+      fRev[i] = revealFn(th);
+    }
+    const PROF = F32(NP), SC = F32(NP), SS = F32(NP), SC2 = F32(NP), SS2 = F32(NP);
+    for (let j = 0; j < NP; j++) {
+      const s = j * INV;
+      PROF[j] = Math.pow(1 - s, 1.45);
+      SC[j] = Math.cos(s * 3.2); SS[j] = Math.sin(s * 3.2);
+      SC2[j] = Math.cos(s * 6.1); SS2[j] = Math.sin(s * 6.1);
+    }
+    const NPT = NF * NP;
+    const pos = F32(NPT * 2), vel = F32(NPT * 2), rest = F32(NPT * 2), vb = F32(NPT * 3);
+
+    function restShape(t, ext, count, swirl) {
+      for (let i = 0; i < count; i++) {
+        const L = fLen[i] * ext * (1 + 0.6 * swirl) * (0.62 + 0.38 * Math.sin(t * fF3[i] + fPh2[i])) * (0.9 + 0.1 * Math.sin(t * fF1[i] + fPh[i]));
+        fCurL[i] = L;
+        const th = fTh[i], b = i * NP * 2;
+        const A1 = t * fF2[i] + fPh[i] * 1.7, A2 = t * fF2[i] * 1.73 + fPh[i];
+        const sA1 = Math.sin(A1), cA1 = Math.cos(A1), sA2 = Math.sin(A2), cA2 = Math.cos(A2);
+        const q = Math.exp(-2.5 * L * INV);
+        const spin = swirl * (1.9 + 0.6 * Math.sin(fPh[i] + t * 0.07));
+        let e = 1;
+        for (let j = 0; j < NP; j++) {
+          const s = j * INV, hs = s * L;
+          const wob = (sA1 * SC[j] + cA1 * SS[j]) + 0.5 * (sA2 * SC2[j] + cA2 * SS2[j]);
+          const a = th + fConv[i] * (1 - e) * fLobe[i] * (1 - swirl) + fCurl[i] * hs * hs + fWob[i] * s * wob * (1 + 3 * swirl) + spin * hs;
+          const r = 0.988 + hs;
+          rest[b + 2 * j] = r * Math.cos(a);
+          rest[b + 2 * j + 1] = r * Math.sin(a);
+          e *= q;
+        }
+      }
+    }
+
+    function stepStrands(h, count, wx, wy, G, R) {
+      const K0 = 17, KN = 55, C = 3.0;
+      const iR2 = 1 / (R * R), cut2 = 16 * R * R, reach = 4 * R;
+      for (let i = 0; i < count; i++) {
+        const b = i * NP * 2;
+        pos[b] = rest[b]; pos[b + 1] = rest[b + 1]; vel[b] = 0; vel[b + 1] = 0;
+        let near = false;
+        if (G > 0.01) {
+          const ax = wx - rest[b], ay = wy - rest[b + 1], lim = fCurL[i] * 2.5 + reach;
+          near = ax * ax + ay * ay < lim * lim;
+        }
+        for (let j = 1; j < NP; j++) {
+          const o = b + 2 * j, s = j * INV;
+          const x = pos[o], y = pos[o + 1];
+          const ex = x - rest[o], ey = y - rest[o + 1];
+          const k = K0 * (1 - 0.72 * s);
+          let fx = -k * ex, fy = -k * ey;
+          const pex = pos[o - 2] - rest[o - 2], pey = pos[o - 1] - rest[o - 1];
+          if (j < NP - 1) {
+            fx += KN * (pex + (pos[o + 2] - rest[o + 2]) - 2 * ex);
+            fy += KN * (pey + (pos[o + 3] - rest[o + 3]) - 2 * ey);
+          } else {
+            fx += KN * (pex - ex);
+            fy += KN * (pey - ey);
+          }
+          if (near) {
+            const dx = wx - x, dy = wy - y, d2 = dx * dx + dy * dy;
+            if (d2 < cut2) {
+              const xx = 1 + d2 * iR2;
+              const f = G * (0.1 + 0.9 * s) / (xx * xx);
+              fx += f * dx; fy += f * dy;
+            }
+          }
+          const vx = vel[o] + (fx - C * vel[o]) * h;
+          const vy = vel[o + 1] + (fy - C * vel[o + 1]) * h;
+          vel[o] = vx; vel[o + 1] = vy;
+          pos[o] = x + vx * h; pos[o + 1] = y + vy * h;
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------ dust: the corona as particles
+    const NQ = COARSE ? 9000 : 22000;
+    const qx = F32(NQ), qy = F32(NQ), qvx = F32(NQ), qvy = F32(NQ), qth = F32(NQ), qu = F32(NQ), qT = F32(NQ);
+    const qLr = F32(NQ), qbr = F32(NQ), qsz = F32(NQ), qph = F32(NQ), qw = F32(NQ), qm = F32(NQ), qOm = F32(NQ), qsa = F32(NQ), qRev = F32(NQ);
+    const PMAX = 1600;
+    const db = F32((NQ + PMAX) * 4);
+    function seedDust(i) {
+      const th = lobeAngle(0.3);
+      const lw = Math.min(1, lobeAt(th, 0));
+      qth[i] = th;
+      qLr[i] = 0.12 + 0.45 * Math.pow(rand(), 2) + lw * (0.25 + 1.5 * Math.pow(rand(), 1.5));
+      qT[i] = 7 + 13 * rand();
+      qbr[i] = (0.2 + 0.8 * Math.pow(rand(), 2.2)) * (0.45 + 0.55 * lw);
+      qsz[i] = 0.75 + 1.6 * Math.pow(rand(), 3);
+      qph[i] = rand() * TAU; qw[i] = 0.08 + 0.3 * rand(); qm[i] = 0.55 + 0.9 * rand();
+      qOm[i] = (0.1 + 0.32 * rand()) * (rand() < 0.88 ? 1 : -1);
+      qRev[i] = revealFn(th);
+    }
+    for (let i = 0; i < NQ; i++) { seedDust(i); qu[i] = rand(); qsa[i] = 0; qx[i] = 99; qy[i] = 99; }
+    let dustInit = false;
+
+    function updDust(dt, count, T, ext, flow, swirl, revealAmt, wx, wy, G, R, vsc) {
+      const thr = 1 - revealAmt * 1.3;
+      const Rp = R * 1.25;
+      const iR2 = 1 / (Rp * Rp), eps2 = 0.07 * Rp * Rp, lim2 = 16 * Rp * Rp;
+      const Gp = G * 1.6;
+      const K = 5, C = 2.2;
+      const steps = dt > 1 / 45 ? 2 : 1, h = dt / steps;
+      const turb = 0.035 * vsc;
+      const unwind = swirl < 0.01 ? 1 - Math.exp(-dt * 0.35) : 0;
+      let n = 0;
+      for (let i = 0; i < count; i++) {
+        let u = qu[i] + flow * dt / qT[i];
+        let fresh = !dustInit;
+        if (u > 1) { u -= 1; qth[i] += (rand() - 0.5) * 0.06; fresh = true; }
+        else if (u < 0) { u += 1; qth[i] += (rand() - 0.5) * 0.06; fresh = true; }
+        qu[i] = u;
+        const lr = qLr[i] * ext * (1 + 0.35 * swirl);
+        let rr = 1.004 + u * lr;
+        if (swirl > 0.001) {
+          rr += swirl * 0.1 * lr * Math.sin(T * qw[i] * 2.0 + qph[i]);
+          qsa[i] += swirl * qOm[i] * dt / (rr * Math.sqrt(rr));
+        } else if (unwind > 0 && qsa[i] !== 0) {
+          const target = Math.round(qsa[i] / TAU) * TAU;
+          qsa[i] += (target - qsa[i]) * unwind;
+        }
+        const a = qth[i] + qsa[i] + 0.05 * Math.sin(qph[i] + u * 5.0 + T * 0.05);
+        const hx = rr * Math.cos(a), hy = rr * Math.sin(a);
+        let x = qx[i], y = qy[i], vx = qvx[i], vy = qvy[i];
+        if (fresh) { x = hx; y = hy; vx = 0; vy = 0; }
+        for (let s = 0; s < steps; s++) {
+          let ax = K * (hx - x) - C * vx;
+          let ay = K * (hy - y) - C * vy;
+          if (Gp > 0.01) {
+            const dx = wx - x, dy = wy - y, d2 = dx * dx + dy * dy;
+            if (d2 < lim2) {
+              const xx = 1 + d2 * iR2;
+              const f = Gp * qm[i] / (xx * xx) * (d2 / (d2 + eps2));
+              ax += f * dx; ay += f * dy;
+            }
+          }
+          ax += turb * Math.sin(y * 11 + T * 0.9 + qph[i]);
+          ay += turb * Math.cos(x * 11 - T * 0.8 + qph[i]);
+          vx += ax * h; vy += ay * h;
+          x += vx * h; y += vy * h;
+        }
+        qx[i] = x; qy[i] = y; qvx[i] = vx; qvy[i] = vy;
+        const env = smooth(0, 0.08, u) * (1 - smooth(0.72, 1, u));
+        const rv = smooth(thr, thr + 0.2, qRev[i]);
+        let dark = 0.1 + 0.9 * smooth(0.22, 0.72, patchFn(qth[i], T));
+        dark += (1 - dark) * swirl * 0.6;
+        const A = qbr[i] * env * rv * dark;
+        if (A > 0.002) {
+          const w = n * 4;
+          db[w] = x; db[w + 1] = y; db[w + 2] = A; db[w + 3] = qsz[i];
+          n++;
+        }
+      }
+      dustInit = true;
+      return n;
+    }
+
+    // ------------------------------------------------------------------ fragments that let go
+    const pX = F32(PMAX), pY = F32(PMAX), pVX = F32(PMAX), pVY = F32(PMAX), pL = F32(PMAX), pM = F32(PMAX), pB = F32(PMAX);
+    let pHead = 0;
+    const emit = (x, y, vx, vy, life, b) => {
+      const k = pHead; pHead = (pHead + 1) % PMAX;
+      pX[k] = x; pY[k] = y; pVX[k] = vx; pVY[k] = vy; pL[k] = life; pM[k] = life; pB[k] = b;
+    };
+    function updFragments(dt, wx, wy, G, R, t, vsc, n) {
+      const iR2 = 1 / (R * R);
+      const damp = Math.exp(-dt * 0.7);
+      for (let k = 0; k < PMAX; k++) {
+        if (pL[k] <= 0) continue;
+        pL[k] -= dt;
+        const x = pX[k], y = pY[k];
+        const r = Math.sqrt(x * x + y * y) + 1e-5;
+        if (r < 1.0 || pL[k] <= 0) { pL[k] = 0; continue; }
+        let ax = (x / r) * 0.01 * vsc + Math.sin(y * 7 + t * 0.3) * 0.008 * vsc;
+        let ay = (y / r) * 0.01 * vsc + Math.cos(x * 7 - t * 0.27) * 0.008 * vsc;
+        if (G > 0.01) {
+          const dx = wx - x, dy = wy - y, d2 = dx * dx + dy * dy;
+          if (d2 < 16 * R * R) { const xx = 1 + d2 * iR2; const f = 0.22 * G / (xx * xx); ax += f * dx; ay += f * dy; }
+        }
+        pVX[k] = (pVX[k] + ax * dt) * damp;
+        pVY[k] = (pVY[k] + ay * dt) * damp;
+        pX[k] = x + pVX[k] * dt;
+        pY[k] = y + pVY[k] * dt;
+        const age = pM[k] - pL[k];
+        const w = n * 4;
+        db[w] = pX[k]; db[w + 1] = pY[k]; db[w + 2] = pB[k] * smooth(0, 0.6, age) * smooth(0, pM[k] * 0.6, pL[k]); db[w + 3] = 1.3;
+        n++;
+      }
+      return n;
+    }
+
+    function buildStrands(t, count, revealAmt, dt, G, vsc, swirl) {
+      const thr = 1 - revealAmt * 1.3;
+      for (let i = 0; i < count; i++) {
+        const th = fTh[i];
+        const rv = smooth(thr, thr + 0.2, fRev[i]);
+        let dark = 0.1 + 0.9 * smooth(0.22, 0.72, patchFn(th, t));
+        dark += (1 - dark) * swirl * 0.5;
+        const flick = 0.78 + 0.22 * Math.sin(t * fF1[i] * 2.3 + fPh2[i]);
+        const A = fBright[i] * rv * dark * flick;
+        const restSeg = Math.max(fCurL[i] * INV, 1e-4);
+        if (fCut[i] < 1.2) fCut[i] = Math.min(1.2, fCut[i] + dt * 0.14);
+        const cut = fCut[i];
+        const b = i * NP * 2, v = i * NP * 3;
+        let len = 0;
+        for (let j = 0; j < NP; j++) {
+          const o = b + 2 * j;
+          const x = pos[o], y = pos[o + 1];
+          let thin = 1;
+          if (j > 0) {
+            const dx = x - pos[o - 2], dy = y - pos[o - 1];
+            const sg = Math.sqrt(dx * dx + dy * dy);
+            len += sg;
+            const st = sg / restSeg;
+            if (st > 1) thin = Math.pow(st, -0.85);
+          }
+          const cm = cut >= 1.1 ? 1 : 1 - smooth(cut - 0.06, cut + 0.06, j * INV);
+          const w = v + 3 * j;
+          vb[w] = x; vb[w + 1] = y; vb[w + 2] = A * PROF[j] * thin * cm;
+        }
+        if (!REDUCE && G > 2 && cut >= 1.1 && A > 0.05 && len > fCurL[i] * 2.3 && rand() < dt * 1.4) {
+          const c = 0.3 + 0.35 * rand();
+          fCut[i] = c;
+          for (let j = Math.ceil(c * (NP - 1)); j < NP; j++) {
+            const o = b + 2 * j;
+            for (let m = 0; m < 2; m++) {
+              emit(pos[o] + (rand() - 0.5) * 0.004 * vsc, pos[o + 1] + (rand() - 0.5) * 0.004 * vsc,
+                vel[o] * 0.55 + (rand() - 0.5) * 0.05 * vsc, vel[o + 1] * 0.55 + (rand() - 0.5) * 0.05 * vsc,
+                2.5 + 4 * rand(), A * (0.5 + 0.5 * rand()) * PROF[j] * 3.0);
+            }
+          }
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------ GPU buffers
+    const lineVAO = gl.createVertexArray();
+    gl.bindVertexArray(lineVAO);
+    const lineBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, vb.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
+    const idx = new Uint32Array(NF * (NP - 1) * 2);
+    for (let i = 0, w = 0; i < NF; i++) {
+      for (let j = 0; j < NP - 1; j++) { idx[w++] = i * NP + j; idx[w++] = i * NP + j + 1; }
+    }
+    const idxBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+    const ptVAO = gl.createVertexArray();
+    gl.bindVertexArray(ptVAO);
+    const ptBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, ptBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, db.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
+    gl.bindVertexArray(null);
+
+    // ------------------------------------------------------------------ render targets & quality
+    const LV = [
+      { dpr: 2.0, cs: 0.6, fil: 1.0 },
+      { dpr: 1.6, cs: 0.55, fil: 1.0 },
+      { dpr: 1.3, cs: 0.5, fil: 0.85 },
+      { dpr: 1.0, cs: 0.45, fil: 0.7 },
+      { dpr: 0.8, cs: 0.4, fil: 0.55 }
+    ];
+    let level = COARSE ? 2 : 1;
+    let nAct = Math.round(NF * LV[level].fil), nDust = Math.round(NQ * LV[level].fil);
+    let cw = 2, ch = 2, cssW = 1, cssH = 1;
+    let RT = null;
+    const mkTex = (w, h) => {
+      const t = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, IFMT, w, h, 0, gl.RGBA, TYPE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return t;
+    };
+    const mkFbo = (t) => {
+      const f = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+      return f;
+    };
+    function freeTargets() {
+      if (!RT) return;
+      [RT.cT, RT.sT, RT.aT, RT.bT].forEach((t) => gl.deleteTexture(t));
+      [RT.cF, RT.sF, RT.aF, RT.bF, RT.mF].forEach((f) => f && gl.deleteFramebuffer(f));
+      if (RT.mR) gl.deleteRenderbuffer(RT.mR);
+      RT = null;
+    }
+    function makeTargets() {
+      freeTargets();
+      const cs = LV[level].cs;
+      const cW = Math.max(2, Math.round(cw * cs)), cH = Math.max(2, Math.round(ch * cs));
+      const bW = Math.max(2, Math.round(cw / 4)), bH = Math.max(2, Math.round(ch / 4));
+      const R0 = { cW: cW, cH: cH, bW: bW, bH: bH };
+      R0.cT = mkTex(cW, cH); R0.cF = mkFbo(R0.cT);
+      R0.sT = mkTex(cw, ch); R0.sF = mkFbo(R0.sT);
+      R0.aT = mkTex(bW, bH); R0.aF = mkFbo(R0.aT);
+      R0.bT = mkTex(bW, bH); R0.bF = mkFbo(R0.bT);
+      R0.mF = null; R0.mR = null;
+      if (MAXS >= 2) {
+        try {
+          const rb = gl.createRenderbuffer();
+          gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+          gl.renderbufferStorageMultisample(gl.RENDERBUFFER, Math.min(4, MAXS), IFMT, cw, ch);
+          const f = gl.createFramebuffer();
+          gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+          gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+          if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) { R0.mF = f; R0.mR = rb; }
+          else { gl.deleteFramebuffer(f); gl.deleteRenderbuffer(rb); }
+        } catch (e) { R0.mF = null; }
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      RT = R0;
+    }
+    function resize() {
+      const w = Math.max(1, root.clientWidth), h = Math.max(1, root.clientHeight);
+      const pr = Math.min(window.devicePixelRatio || 1, LV[level].dpr);
+      const W = Math.max(2, Math.round(w * pr)), H = Math.max(2, Math.round(h * pr));
+      cssW = w; cssH = h;
+      if (W === cw && H === ch && RT) return;
+      cw = W; ch = H;
+      canvas.width = W; canvas.height = H;
+      makeTargets();
+    }
+
+    // ------------------------------------------------------------------ the journey
+    //            p     view  limb   reveal extent expo  fil   grav  flow  swirl inv
+    const KF = [
+      [0.00, 4.80, 0.000, 0.17, 0.25, 0.60, 0.20, 0.00, 0.25, 0.0, 0.0],
+      [0.12, 4.20, 0.000, 0.45, 0.45, 0.78, 0.45, 0.25, 0.55, 0.0, 0.0],
+      [0.26, 2.70, 0.000, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 0.0, 0.0],
+      [0.38, 2.60, 0.000, 1.00, 1.00, 1.00, 1.00, 1.10, 1.00, 0.0, 0.0],
+      [0.52, 2.30, 0.000, 1.00, 1.08, 0.98, 1.08, 1.70, 1.00, 0.0, 0.0],
+      [0.66, 0.30, 0.995, 1.00, 1.08, 0.72, 1.08, 1.60, 1.00, 0.0, 0.0],
+      [0.76, 0.27, 0.700, 1.00, 1.00, 0.62, 0.70, 1.10, -1.6, 0.0, 0.0],
+      [0.82, 0.24, 0.200, 1.00, 0.90, 0.40, 0.40, 0.60, -2.4, 0.0, 0.0],
+      [0.86, 0.24, 0.200, 1.00, 0.90, 0.70, 0.50, 0.60, 0.20, 0.35, 1.0],
+      [1.00, 1.85, 0.000, 1.00, 1.15, 1.05, 1.10, 1.40, 0.35, 1.0, 1.0]
+    ];
+    const PH_EDGES = [0.1, 0.22, 0.4, 0.56, 0.71, 0.86];
+    const K = { V: 4.8, cr: 0, reveal: 0, ext: 0.25, expo: 0.5, fil: 0.2, grav: 0, flow: 0.25, swirl: 0, inv: 0 };
+    function sampleKF(p) {
+      let a = KF[0], b = KF[KF.length - 1];
+      for (let i = 0; i < KF.length - 1; i++) { if (p >= KF[i][0] && p <= KF[i + 1][0]) { a = KF[i]; b = KF[i + 1]; break; } }
+      const u = smooth(0, 1, (p - a[0]) / Math.max(1e-6, b[0] - a[0]));
+      const L = (k) => a[k] + (b[k] - a[k]) * u;
+      K.V = Math.exp(Math.log(a[1]) + (Math.log(b[1]) - Math.log(a[1])) * u);
+      K.cr = L(2); K.reveal = L(3); K.ext = L(4); K.expo = L(5); K.fil = L(6); K.grav = L(7); K.flow = L(8); K.swirl = L(9); K.inv = L(10);
+    }
+
+    // ------------------------------------------------------------------ input: the hand as gravity
+    let pT = 0, pS = 0, flingV = 0;
+    let pointerIn = false, mx = 0, my = 0, holding = false, holdStart = 0;
+    let touch = null, interacted = false, hoverTime = 0;
+    const JOURNEY = 11000;
+    const local = (e) => { const r = root.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; };
+    const advance = (d) => { pT = clamp(pT + d, 0, 1); };
+    const onUI = (e) => !!(e.target && e.target.closest && e.target.closest('button, [data-ec="rail"]'));
+    const rail = root.querySelector('[data-ec="rail"]'), thumb = root.querySelector('[data-ec="thumb"]');
+    let scrub = null;
+    const railTo = (e) => { const r = rail.getBoundingClientRect(); pT = clamp((e.clientY - r.top - 20) / Math.max(1, r.height - 40), 0, 1); flingV = 0; };
+    const onRailDown = (e) => { if (e.target.closest && e.target.closest('button')) return; e.preventDefault(); scrub = e.pointerId; railTo(e); try { rail.setPointerCapture(e.pointerId); } catch (err) {} };
+    const onRailMove = (e) => { if (scrub === e.pointerId) railTo(e); };
+    const onRailUp = (e) => { if (scrub === e.pointerId) scrub = null; try { rail.releasePointerCapture(e.pointerId); } catch (err) {} };
+    const onWheel = (e) => {
+      e.preventDefault();
+      let d = e.deltaY;
+      if (e.deltaMode === 1) d *= 18; else if (e.deltaMode === 2) d *= cssH;
+      advance(d / JOURNEY);
+    };
+    const onDown = (e) => {
+      local(e);
+      if (onUI(e)) return;
+      try { root.focus({ preventScroll: true }); } catch (err) {}
+      if (e.pointerType === 'touch') {
+        touch = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), lastY: e.clientY, lastT: performance.now(), vy: 0, mode: 'pending' };
+        flingV = 0;
+        pointerIn = true;
+      } else {
+        if (e.button !== 0) return;
+        holding = true; holdStart = performance.now(); pointerIn = true; interacted = true;
+      }
+      try { root.setPointerCapture(e.pointerId); } catch (err) {}
+    };
+    const onMove = (e) => {
+      local(e);
+      if (e.pointerType !== 'touch') { pointerIn = true; return; }
+      if (!touch || e.pointerId !== touch.id) return;
+      const now = performance.now();
+      if (touch.mode === 'pending' && Math.hypot(e.clientX - touch.x0, e.clientY - touch.y0) > 9) touch.mode = 'scroll';
+      if (touch.mode === 'scroll') {
+        const dy = e.clientY - touch.lastY, dtt = Math.max(1, now - touch.lastT);
+        advance(-dy / (cssH * 7));
+        touch.vy = touch.vy * 0.6 + (-dy / (cssH * 7)) / (dtt / 1000) * 0.4;
+      }
+      touch.lastY = e.clientY; touch.lastT = now;
+    };
+    const onUp = (e) => {
+      if (e.pointerType === 'touch') {
+        if (touch && touch.mode === 'scroll' && performance.now() - touch.lastT < 80) flingV = clamp(touch.vy, -0.6, 0.6);
+        touch = null; pointerIn = false;
+      }
+      holding = false;
+      try { root.releasePointerCapture(e.pointerId); } catch (err) {}
+    };
+    const onLeave = (e) => { if (e.pointerType !== 'touch' && !holding) pointerIn = false; };
+    const STOPS = [0, 0.15, 0.3, 0.47, 0.655, 0.79, 1];
+    const onKey = (e) => {
+      const k = e.key;
+      let d = 0;
+      if (k >= '1' && k <= '7') { pT = STOPS[+k - 1]; e.preventDefault(); return; }
+      if (k === 'ArrowDown' || k === 'ArrowRight') d = 0.02;
+      else if (k === 'ArrowUp' || k === 'ArrowLeft') d = -0.02;
+      else if (k === 'PageDown' || (k === ' ' && !onUI(e))) d = 0.07;
+      else if (k === 'PageUp') d = -0.07;
+      else if (k === 'Home') d = -1;
+      else if (k === 'End') d = 1;
+      else return;
+      e.preventDefault();
+      advance(d);
+    };
+    const onCtx = (e) => e.preventDefault();
+    const onBlur = () => { holding = false; };
+    root.addEventListener('wheel', onWheel, { passive: false });
+    if (rail) { rail.addEventListener('pointerdown', onRailDown); rail.addEventListener('pointermove', onRailMove); rail.addEventListener('pointerup', onRailUp); rail.addEventListener('pointercancel', onRailUp); }
+    root.addEventListener('pointerdown', onDown);
+    root.addEventListener('pointermove', onMove);
+    root.addEventListener('pointerup', onUp);
+    root.addEventListener('pointercancel', onUp);
+    root.addEventListener('pointerleave', onLeave);
+    root.addEventListener('keydown', onKey);
+    root.addEventListener('contextmenu', onCtx);
+    window.addEventListener('blur', onBlur);
+    let lost = false;
+    const onLost = (e) => { e.preventDefault(); lost = true; console.warn('ECLIPSE: graphics context lost, waiting to restore'); };
+    const onRestored = () => { if (restart) setTimeout(restart, 0); };
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
+    let ro = null;
+    try { ro = new ResizeObserver(() => resize()); ro.observe(root); } catch (e) { window.addEventListener('resize', resize); }
+    resize();
+
+    // ------------------------------------------------------------------ state
+    sampleKF(0);
+    restShape(0, K.fil, NF, 0);
+    pos.set(rest);
+    let T = 0, simAcc = 0, intro = 0, life = 0;
+    let wx = 6, wy = 6, wvx = 0, wvy = 0, wellInit = false;
+    let G = 0, R = 0.6, lensA = 0, lensV = 0, holdC = 0;
+    let perfAcc = 0, perfN = 0, repAcc = 1, lastThumb = -1;
+    const SUB = 1 / 120;
+    let last = performance.now(), raf = 0, dead = false;
+
+    function frame(now) {
+      if (dead) return;
+      raf = requestAnimationFrame(frame);
+      if (lost) return;
+      const dt = clamp((now - last) / 1000, 0.001, 0.05);
+      last = now;
+      life += dt;
+
+      perfAcc += dt; perfN++;
+      if (perfAcc > 2) {
+        const avg = perfAcc / perfN;
+        if (avg > 0.026 && life > 3.5 && level < LV.length - 1) {
+          level++;
+          nAct = Math.round(NF * LV[level].fil);
+          nDust = Math.round(NQ * LV[level].fil);
+          cw = 0; resize();
+          repAcc = 1;
+        }
+        perfAcc = 0; perfN = 0;
+      }
+
+      const P = getProps();
+      const gain = num(P.intensity, 0.95), grain = num(P.grain, 0.85);
+      const TH = THEMES[getTheme()] || THEMES.white;
+      const ck = 1 - Math.exp(-dt * 3.2);
+      for (let c = 0; c < 3; c++) {
+        curLight[c] += (TH.light[c] - curLight[c]) * ck;
+        curPaper[c] += (TH.paper[c] - curPaper[c]) * ck;
+      }
+
+      if (Math.abs(flingV) > 1e-4) { advance(flingV * dt); flingV *= Math.exp(-dt * 3.2); }
+      pS += (pT - pS) * (1 - Math.exp(-dt * (scrub !== null ? 5 : REDUCE ? 3.5 : 1.9)));
+      if (thumb && rail) {
+        const ty0 = Math.round(pS * Math.max(0, rail.clientHeight - 40) * 10) / 10;
+        if (ty0 !== lastThumb) { thumb.style.transform = 'translateY(' + ty0 + 'px)'; lastThumb = ty0; }
+      }
+      sampleKF(pS);
+      intro = Math.min(1, intro + dt / 4.5);
+      const quiet = 1 - 0.45 * smooth(0.74, 0.84, pS) * (1 - smooth(0.86, 0.95, pS));
+      const speed = (REDUCE ? 0.3 : 1) * quiet;
+      T += dt * speed;
+
+      const asp = cw / ch;
+      const halfH = asp >= 1 ? K.V : K.V / asp;
+      const cx = LDX * K.cr, cy = LDY * K.cr;
+      const vsc = clamp(K.V / 2.6, 0.14, 1.6);
+
+      if (touch && touch.mode === 'pending' && now - touch.t0 > 240) {
+        touch.mode = 'hold'; holding = true; holdStart = now; interacted = true;
+      }
+
+      // gravity
+      const tx = cx + ((mx / cssW) * 2 - 1) * halfH * asp;
+      const ty = cy - ((my / cssH) * 2 - 1) * halfH;
+      if (pointerIn && !wellInit) { wx = tx; wy = ty; wellInit = true; }
+      const ht = holding ? Math.max(0, now - holdStart) / 1000 : 0;
+      const hc = holding ? 1 - Math.exp(-Math.pow(ht / 1.6, 1.6)) : 0;
+      holdC += (hc - holdC) * (1 - Math.exp(-dt * (hc > holdC ? 8 : 1.4)));
+      const gg = K.grav * (REDUCE ? 0.6 : 1) * smooth(0.0, 0.6, intro);
+      const Gt = pointerIn ? (4 + 30 * holdC) * gg : 0;
+      G += (Gt - G) * (1 - Math.exp(-dt * (Gt > G ? 3.5 : 1.3)));
+      const Rt = vsc * (0.6 + 1.5 * holdC);
+      R += (Rt - R) * (1 - Math.exp(-dt * 2.2));
+      const wk = REDUCE ? 30 : 55, wc = REDUCE ? 11 : 10.5;
+      wvx += (wk * (tx - wx) - wc * wvx) * dt;
+      wvy += (wk * (ty - wy) - wc * wvy) * dt;
+      wx += wvx * dt; wy += wvy * dt;
+      const lt = pointerIn ? (0.07 + 0.6 * holdC) * Math.min(gg, 1.3) : 0;
+      lensV += (22 * (lt - lensA) - (REDUCE ? 9 : 3.6) * lensV) * dt;
+      lensA = clamp(lensA + lensV * dt, -0.25, 1.1);
+      if (!isFinite(G + R + lensA + lensV + holdC + wx + wy + wvx + wvy)) { G = 0; R = 0.6; lensA = 0; lensV = 0; holdC = 0; wx = tx; wy = ty; wvx = 0; wvy = 0; }
+      if (pointerIn && G > 1 && !interacted) { hoverTime += dt; if (hoverTime > 6) interacted = true; }
+
+      // the light
+      restShape(T, K.fil, nAct, K.swirl);
+      simAcc = Math.min(simAcc + dt, SUB * 6);
+      while (simAcc >= SUB) { stepStrands(SUB, nAct, wx, wy, G, R); simAcc -= SUB; }
+      buildStrands(T, nAct, K.reveal, dt, G, vsc, K.swirl);
+      let nPts = updDust(dt, nDust, T, K.fil, K.flow * speed, K.swirl, K.reveal, wx, wy, G, R, vsc);
+      nPts = updFragments(dt, wx, wy, G, R, T, vsc, nPts);
+
+      // ---------------------------------------------------------------- draw
+      const cam = [cx, cy, halfH, asp];
+      gl.disable(gl.BLEND);
+      gl.bindVertexArray(null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, RT.cF);
+      gl.viewport(0, 0, RT.cW, RT.cH);
+      gl.useProgram(PR_CORONA.p);
+      let u = PR_CORONA.u;
+      gl.uniform4fv(u.uCam, cam);
+      gl.uniform4f(u.uWell, wx, wy, lensA, Math.max(0.02, R * 1.1));
+      gl.uniform4fv(u.uLA, LA); gl.uniform4fv(u.uLW, LW); gl.uniform4fv(u.uLS, LS);
+      gl.uniform4fv(u.uPA, PA); gl.uniform4fv(u.uPS, PS);
+      gl.uniform1f(u.uT, T);
+      gl.uniform1f(u.uPx, (2 * halfH) / RT.cH);
+      gl.uniform1f(u.uReveal, K.reveal);
+      gl.uniform1f(u.uExt, K.ext);
+      gl.uniform1f(u.uSwirl, K.swirl);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, RT.mF || RT.sF);
+      gl.viewport(0, 0, cw, ch);
+      gl.useProgram(PR_COPY.p);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, RT.cT);
+      gl.uniform1i(PR_COPY.u.uTex, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.useProgram(PR_LINE.p);
+      gl.uniform4fv(PR_LINE.u.uCam, cam);
+      gl.uniform1f(PR_LINE.u.uGain, 0.8 * Math.min(1.2, K.fil + 0.2) * (0.45 + 0.55 * smooth(0.15, 0.8, vsc)));
+      gl.bindVertexArray(lineVAO);
+      gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, vb, 0, nAct * NP * 3);
+      gl.drawElements(gl.LINES, nAct * (NP - 1) * 2, gl.UNSIGNED_INT, 0);
+      if (nPts > 0) {
+        const pxr = cw / cssW;
+        gl.useProgram(PR_POINT.p);
+        gl.uniform4fv(PR_POINT.u.uCam, cam);
+        gl.uniform1f(PR_POINT.u.uSize, 1.35 * pxr * (0.8 + 0.4 * smooth(0.15, 0.6, 1 - vsc)));
+        gl.uniform1f(PR_POINT.u.uGain, 0.75);
+        gl.bindVertexArray(ptVAO);
+        gl.bindBuffer(gl.ARRAY_BUFFER, ptBuf);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, db, 0, nPts * 4);
+        gl.drawArrays(gl.POINTS, 0, nPts);
+      }
+      gl.bindVertexArray(null);
+      gl.disable(gl.BLEND);
+
+      if (RT.mF) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, RT.mF);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, RT.sF);
+        gl.blitFramebuffer(0, 0, cw, ch, 0, 0, cw, ch, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+      }
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, RT.aF);
+      gl.viewport(0, 0, RT.bW, RT.bH);
+      gl.useProgram(PR_DOWN.p);
+      gl.bindTexture(gl.TEXTURE_2D, RT.sT);
+      gl.uniform1i(PR_DOWN.u.uTex, 0);
+      gl.uniform2f(PR_DOWN.u.uTexel, 1 / cw, 1 / ch);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.useProgram(PR_BLUR.p);
+      gl.uniform1i(PR_BLUR.u.uTex, 0);
+      for (let pass = 0; pass < 2; pass++) {
+        const sp = pass === 0 ? 1.2 : 2.4;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, RT.bF);
+        gl.bindTexture(gl.TEXTURE_2D, RT.aT);
+        gl.uniform2f(PR_BLUR.u.uDir, sp / RT.bW, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, RT.aF);
+        gl.bindTexture(gl.TEXTURE_2D, RT.bT);
+        gl.uniform2f(PR_BLUR.u.uDir, 0, sp / RT.bH);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
+
+      const inv = K.inv;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, cw, ch);
+      gl.useProgram(PR_COMP.p);
+      u = PR_COMP.u;
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, RT.sT); gl.uniform1i(u.uScene, 0);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RT.aT); gl.uniform1i(u.uBloom, 1);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.uniform4fv(u.uCam, cam);
+      gl.uniform2f(u.uRes, cw, ch);
+      gl.uniform1f(u.uExp, 1.55 * gain * K.expo * smooth(0, 1, intro) * (1 + 0.25 * inv));
+      gl.uniform1f(u.uGrain, grain);
+      gl.uniform1f(u.uSeed, REDUCE ? 0.37 : (Math.floor(now / 41) % 997) * 0.618);
+      gl.uniform1f(u.uBloomK, 0.38 + 0.25 * inv);
+      gl.uniform1f(u.uInv, inv);
+      gl.uniform3f(u.uGround, curPaper[0] * inv, curPaper[1] * inv, curPaper[2] * inv);
+      gl.uniform3f(u.uInk, curLight[0] + (INK[0] - curLight[0]) * inv, curLight[1] + (INK[1] - curLight[1]) * inv, curLight[2] + (INK[2] - curLight[2]) * inv);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      // ---------------------------------------------------------------- the grid's few live words
+      repAcc += dt;
+      if (repAcc > 0.1) {
+        repAcc = 0;
+        let ph = 0;
+        while (ph < PH_EDGES.length && pS >= PH_EDGES[ph]) ph++;
+        const dist = Math.sqrt(tx * tx + ty * ty);
+        report({
+          phase: ph,
+          inv: inv > 0.5,
+          hold: '(' + ht.toFixed(1) + ')',
+          dist: pointerIn ? dist.toFixed(2) : '—'
+        });
+      }
+    }
+    raf = requestAnimationFrame(frame);
+
+    return {
+      jump: function (p) { pT = clamp(p, 0, 1); flingV = 0; },
+      stop: function (keepContext) {
+        dead = true;
+        cancelAnimationFrame(raf);
+        if (ro) ro.disconnect(); else window.removeEventListener('resize', resize);
+        root.removeEventListener('wheel', onWheel);
+        if (rail) { rail.removeEventListener('pointerdown', onRailDown); rail.removeEventListener('pointermove', onRailMove); rail.removeEventListener('pointerup', onRailUp); rail.removeEventListener('pointercancel', onRailUp); }
+        root.removeEventListener('pointerdown', onDown);
+        root.removeEventListener('pointermove', onMove);
+        root.removeEventListener('pointerup', onUp);
+        root.removeEventListener('pointercancel', onUp);
+        root.removeEventListener('pointerleave', onLeave);
+        root.removeEventListener('keydown', onKey);
+        root.removeEventListener('contextmenu', onCtx);
+        window.removeEventListener('blur', onBlur);
+        canvas.removeEventListener('webglcontextlost', onLost);
+        canvas.removeEventListener('webglcontextrestored', onRestored);
+        if (keepContext || lost) return;
+        try { freeTargets(); } catch (e) {}
+        const ext = gl.getExtension('WEBGL_lose_context');
+        if (ext) ext.loseContext();
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
