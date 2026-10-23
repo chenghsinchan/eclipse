@@ -23,29 +23,34 @@ a{color:#8d8a83}a:hover{color:#e9e5dc}
 .btn{-webkit-appearance:none;appearance:none;background:none;border:0;margin:0;padding:0;color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;pointer-events:auto;transition:opacity .45s ease}
 .btn:hover{opacity:1 !important}
 .btn:focus-visible{outline:1px solid currentColor;outline-offset:3px}
-.root{position:relative;width:100%;height:100vh;height:100dvh;overflow:hidden;background:#000;touch-action:none;cursor:crosshair}
+.root{position:relative;width:100%;height:100vh;height:100dvh;overflow:hidden;background:#000;touch-action:none;cursor:none}
 .tl{position:absolute;top:max(24px,env(safe-area-inset-top));left:max(28px,env(safe-area-inset-left))}
-.tr{position:absolute;top:max(16px,env(safe-area-inset-top));right:max(20px,env(safe-area-inset-right));display:flex;align-items:center}
-.chip{display:flex;align-items:center;justify-content:center;width:30px;height:30px}
-.chip span{display:block;width:9px;height:9px;box-sizing:border-box;border:1px solid currentColor;transition:background .5s ease}
-.rail{position:absolute;top:96px;bottom:112px;right:max(14px,env(safe-area-inset-right));width:68px;pointer-events:auto;cursor:ns-resize;touch-action:none}
-.line{position:absolute;top:20px;bottom:20px;right:14px;width:1px;background:currentColor;opacity:0.18}
+.tr{position:absolute;top:max(24px,env(safe-area-inset-top));right:max(28px,env(safe-area-inset-right));display:flex;gap:0 1em}
+.tr .btn{padding:10px 0;margin:-10px 0}
+.rail{position:absolute;top:96px;bottom:112px;right:max(10px,env(safe-area-inset-right));width:84px;pointer-events:auto;cursor:ns-resize;touch-action:none}
+.line{position:absolute;top:20px;bottom:20px;right:20px;width:1px;background:currentColor;opacity:0.12}
+.dot{opacity:0.32}
+.cur{position:absolute;left:0;top:0;width:30px;height:30px;overflow:visible;pointer-events:none;opacity:0;fill:currentColor;transition:opacity .35s ease;will-change:transform}
+.fn{font-size:10px;line-height:1.2;letter-spacing:0.08em;opacity:0.7;justify-self:end;white-space:nowrap}
 .nav{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;fill:currentColor}
 .ring{fill:none;stroke:currentColor;stroke-width:1}
-.lab{position:absolute;right:34px;font-size:10px;line-height:1;padding:9px 6px;margin-top:-14px}
-.foot{position:absolute;left:max(28px,env(safe-area-inset-left));right:max(28px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:24px;align-items:end}
+.lab{position:absolute;right:42px;font-size:10px;line-height:1;padding:9px 6px;margin-top:-14px}
+.foot{position:absolute;left:max(28px,env(safe-area-inset-left));right:max(28px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;column-gap:24px;align-items:end}
 .foot p{margin:0;display:flex;gap:0.45em 0;flex-wrap:wrap}
 .f1{gap:2.2em !important}
 .kv{display:grid !important;grid-template-columns:1.3em 4.2em 1.3em 4.2em}
 .k{opacity:0.55}
 @media (max-width:760px){
 .tl{top:max(18px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left))}
-.tr{top:max(10px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right))}
-.foot{left:max(18px,env(safe-area-inset-left));right:max(18px,env(safe-area-inset-right));bottom:max(18px,calc(env(safe-area-inset-bottom) + 4px));grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px}
+.tr{top:max(18px,env(safe-area-inset-top));right:max(18px,env(safe-area-inset-right))}
+.foot{left:max(18px,env(safe-area-inset-left));right:max(18px,env(safe-area-inset-right));bottom:max(18px,calc(env(safe-area-inset-bottom) + 4px));grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px;row-gap:10px}
+.fn{grid-column:1 / -1}
 .w{display:none !important}
 .f2{justify-self:end}
-.rail{right:max(2px,env(safe-area-inset-right));top:84px;bottom:76px}
+.rail{right:max(0px,env(safe-area-inset-right));top:80px;bottom:96px}
 }
+.lab:hover{opacity:1 !important}
+@media (pointer:coarse){.cur{display:none}}
 @media (max-height:520px){.rail{top:56px;bottom:56px}.lab{display:none}}
 </style>
 </head>
@@ -55,10 +60,10 @@ a{color:#8d8a83}a:hover{color:#e9e5dc}
 <p class="sr">A total solar eclipse rendered in real time. Move the pointer to attract the corona, press and hold to intensify the pull, and scroll or drag the rail on the right to travel through seven phases.</p>
 <div id="ui" class="g" style="color: #e9e5dc; opacity: 0">
 <h1 class="t b tl">Eclipse</h1>
-<div class="tr" role="group" aria-label="Colour">
-<button type="button" class="btn chip" data-theme="white" aria-label="White" aria-pressed="true" style="opacity: 1"><span style="background: currentColor"></span></button>
-<button type="button" class="btn chip" data-theme="red" aria-label="Red" aria-pressed="false" style="opacity: 0.55"><span style="background: transparent"></span></button>
-<button type="button" class="btn chip" data-theme="blue" aria-label="Blue" aria-pressed="false" style="opacity: 0.55"><span style="background: transparent"></span></button>
+<div class="tr t" role="group" aria-label="Colour">
+<button type="button" class="btn" data-theme="white" aria-pressed="true" style="opacity: 1">White</button>
+<button type="button" class="btn" data-theme="red" aria-pressed="false" style="opacity: 0.5">Red</button>
+<button type="button" class="btn" data-theme="blue" aria-pressed="false" style="opacity: 0.5">Blue</button>
 </div>
 <div data-ec="rail" class="rail" role="group" aria-label="Phases">
 <div class="line"></div>
@@ -70,19 +75,26 @@ a{color:#8d8a83}a:hover{color:#e9e5dc}
 <feComposite in="SourceGraphic" in2="g" operator="atop"></feComposite>
 </filter>
 </defs>
+<circle class="dot" data-ec="d0" cx="-40" cy="-40" r="1.6"></circle>
+<circle class="dot" data-ec="d1" cx="-40" cy="-40" r="1.6"></circle>
+<circle class="dot" data-ec="d2" cx="-40" cy="-40" r="1.6"></circle>
+<circle class="dot" data-ec="d3" cx="-40" cy="-40" r="1.6"></circle>
+<circle class="dot" data-ec="d4" cx="-40" cy="-40" r="1.6"></circle>
+<circle class="dot" data-ec="d5" cx="-40" cy="-40" r="1.6"></circle>
+<circle class="dot" data-ec="d6" cx="-40" cy="-40" r="1.6"></circle>
 <g filter="url(#ecgoo)">
-<circle data-ec="s0" cx="-40" cy="-40" r="2"></circle>
-<circle data-ec="s1" cx="-40" cy="-40" r="2"></circle>
-<circle data-ec="s2" cx="-40" cy="-40" r="2"></circle>
-<circle data-ec="s3" cx="-40" cy="-40" r="2"></circle>
-<circle data-ec="s4" cx="-40" cy="-40" r="2"></circle>
-<circle data-ec="s5" cx="-40" cy="-40" r="2"></circle>
-<circle data-ec="s6" cx="-40" cy="-40" r="2"></circle>
+<circle data-ec="s0" cx="-40" cy="-40" r="0"></circle>
+<circle data-ec="s1" cx="-40" cy="-40" r="0"></circle>
+<circle data-ec="s2" cx="-40" cy="-40" r="0"></circle>
+<circle data-ec="s3" cx="-40" cy="-40" r="0"></circle>
+<circle data-ec="s4" cx="-40" cy="-40" r="0"></circle>
+<circle data-ec="s5" cx="-40" cy="-40" r="0"></circle>
+<circle data-ec="s6" cx="-40" cy="-40" r="0"></circle>
 <circle data-ec="drop" cx="-40" cy="-40" r="4"></circle>
-<circle data-ec="sun" cx="-40" cy="-40" r="6.5"></circle>
+<circle data-ec="sun" cx="-40" cy="-40" r="9"></circle>
 </g>
 <circle data-ec="ring" class="ring" cx="-40" cy="-40" r="10" opacity="0"></circle>
-<circle data-ec="moon" cx="-40" cy="-40" r="6.7" fill="#000000"></circle>
+<circle data-ec="moon" cx="-40" cy="-40" r="9.3" fill="#000000"></circle>
 </svg>
 
 <button type="button" class="btn t tab lab" data-tick="0" aria-label="01 Absence" aria-current="step" style="top: calc(20px + 0.0 * (100% - 40px)); opacity: 1">01</button>
@@ -105,7 +117,18 @@ a{color:#8d8a83}a:hover{color:#e9e5dc}
 <p class="f2 kv" aria-hidden="true"><span class="k">G</span><span id="v-pull">0.00</span><span class="k">r</span><span id="v-dist">—</span></p>
 <p class="kv w" aria-hidden="true"><span class="k">θ</span><span id="v-ang">—</span><span class="k">t</span><span id="v-hold">0.0</span></p>
 <p class="kv w" aria-hidden="true"><span class="k">Φ</span><span id="v-prog">0.000</span><span class="k">n</span><span id="v-count">—</span></p>
+<p class="fn">CHENG™</p>
 </div>
+<svg data-ec="cursor" class="cur" viewBox="-15 -15 30 30" aria-hidden="true">
+<defs>
+<mask id="ecmoonmask" maskUnits="userSpaceOnUse" x="-15" y="-15" width="30" height="30">
+<rect x="-15" y="-15" width="30" height="30" fill="#ffffff"></rect>
+<circle data-ec="cshadow" cx="3" cy="0" r="5.4" fill="#000000"></circle>
+</mask>
+</defs>
+<circle cx="0" cy="0" r="5" mask="url(#ecmoonmask)"></circle>
+<circle data-ec="cring" class="ring" cx="0" cy="0" r="8.5" opacity="0"></circle>
+</svg>
 </div>
 <p data-ec="fallback" style="position: absolute; top: 50%; left: 0; right: 0; margin: 0; text-align: center; font-family: 'Inter Tight', Helvetica, Arial, sans-serif; font-size: 13px; color: #8d8a83; opacity: 0; pointer-events: none">This work needs a browser with WebGL 2.</p>
 </main>
@@ -132,7 +155,7 @@ class Component extends DCLogic {
     const theme = st.theme || 'white';
     const inv = !!st.inv;
     const phase = st.phase || 0;
-    const dim = inv ? '0.7' : '0.55';
+    const dim = inv ? '0.66' : '0.5';
     const pick = (t) => () => this.setState({ theme: t });
     const ticks = this._PH.map((p, i) => ({
       no: p[0], aria: p[0] + ' ' + p[1],
@@ -977,7 +1000,9 @@ void main() {
     const onUI = (e) => !!(e.target && e.target.closest && e.target.closest('button, [data-ec="rail"]'));
     const rail = root.querySelector('[data-ec="rail"]');
     const q = (k) => (rail ? rail.querySelector('[data-ec="' + k + '"]') : null);
-    const NAV = { stops: [0, 1, 2, 3, 4, 5, 6].map((i) => q('s' + i)), sun: q('sun'), drop: q('drop'), moon: q('moon'), ring: q('ring') };
+    const NAV = { stops: [0, 1, 2, 3, 4, 5, 6].map((i) => q('s' + i)), dots: [0, 1, 2, 3, 4, 5, 6].map((i) => q('d' + i)), sun: q('sun'), drop: q('drop'), moon: q('moon'), ring: q('ring') };
+    const CUR = { el: root.querySelector('[data-ec="cursor"]'), sh: root.querySelector('[data-ec="cshadow"]'), ring: root.querySelector('[data-ec="cring"]') };
+    let curOn = false, uiHover = false, curKey = '';
     const STOPF = [0, 0.15, 0.3, 0.47, 0.655, 0.79, 1];
     let navY = 0, navV = 0, dropY = 0, dropV = 0, navInit = false, navTug = 0, navTugX = 0, navTugY = 0;
     const setA = (el, k, v) => {
@@ -992,19 +1017,22 @@ void main() {
       if (!rail || !NAV.sun) return;
       const H = rail.clientHeight, W = rail.clientWidth;
       if (H < 80) return;
-      const x = W - 14.5, top = 20, span = H - 40;
+      const x = W - 20.5, top = 20, span = H - 40;
       const target = top + pS * span;
       const h = Math.min(dt, 1 / 30);
       if (!navInit) { navY = dropY = target; navInit = true; }
       navV += (210 * (target - navY) - 26 * navV) * h; navY += navV * h;
       dropV += (60 * (navY - dropY) - 9 * dropV) * h; dropY += dropV * h;
-      const R = 6.5;
+      const R = W < 80 ? 8 : 9;
       for (let i = 0; i < 7; i++) {
         const y = top + STOPF[i] * span;
         const d = Math.abs(y - navY);
         setA(NAV.stops[i], 'cx', x);
         setA(NAV.stops[i], 'cy', y);
-        setA(NAV.stops[i], 'r', 2.6 + 2.4 * Math.exp(-(d * d) / 420));
+        const melt = 3.6 * Math.exp(-(d * d) / 650);
+        setA(NAV.stops[i], 'r', melt < 0.4 ? 0 : melt);
+        setA(NAV.dots[i], 'cx', x);
+        setA(NAV.dots[i], 'cy', y);
       }
       const speed = Math.min(1, Math.abs(navV) / 600);
       setA(NAV.sun, 'cx', x); setA(NAV.sun, 'cy', navY); setA(NAV.sun, 'r', R * (1 - 0.12 * speed));
@@ -1024,7 +1052,7 @@ void main() {
       setA(NAV.moon, 'fill', groundCss);
       const ringOp = smooth(0.2, 0.28, p) * (1 - smooth(0.68, 0.8, p)) * 0.8 + smooth(0.9, 1, p) * 0.55;
       setA(NAV.ring, 'cx', x); setA(NAV.ring, 'cy', navY);
-      setA(NAV.ring, 'r', R * 1.6 + navTug * 4);
+      setA(NAV.ring, 'r', R * 1.55 + navTug * 5);
       setA(NAV.ring, 'opacity', ringOp);
     }
     let scrub = null;
@@ -1054,7 +1082,7 @@ void main() {
     };
     const onMove = (e) => {
       local(e);
-      if (e.pointerType !== 'touch') { pointerIn = true; return; }
+      if (e.pointerType !== 'touch') { pointerIn = true; uiHover = onUI(e); return; }
       if (!touch || e.pointerId !== touch.id) return;
       const now = performance.now();
       if (touch.mode === 'pending' && Math.hypot(e.clientX - touch.x0, e.clientY - touch.y0) > 9) touch.mode = 'scroll';
@@ -1191,6 +1219,19 @@ void main() {
       if (!isFinite(G + R + lensA + lensV + holdC + wx + wy + wvx + wvy)) { G = 0; R = 0.6; lensA = 0; lensV = 0; holdC = 0; wx = tx; wy = ty; wvx = 0; wvy = 0; }
       if (pointerIn && G > 1 && !interacted) { hoverTime += dt; if (hoverTime > 6) interacted = true; }
 
+      if (CUR.el && !COARSE) {
+        const on = pointerIn && !uiHover && !touch;
+        if (on !== curOn) { CUR.el.style.opacity = on ? '1' : '0'; curOn = on; }
+        const key = Math.round(mx * 2) + ',' + Math.round(my * 2);
+        if (key !== curKey) { CUR.el.style.transform = 'translate3d(' + (mx - 15).toFixed(1) + 'px,' + (my - 15).toFixed(1) + 'px,0)'; curKey = key; }
+        // the lit limb always faces the sun; holding fills the moon toward full
+        const dl0 = Math.hypot(tx, ty) + 1e-6;
+        const off = 3 + 9 * holdC;
+        setA(CUR.sh, 'cx', (tx / dl0) * off);
+        setA(CUR.sh, 'cy', (-ty / dl0) * off);
+        setA(CUR.ring, 'r', 8.5 + 3.5 * holdC);
+        setA(CUR.ring, 'opacity', Math.min(0.8, holdC * 0.9));
+      }
       {
         const dl = Math.hypot(tx, ty) + 1e-6;
         const iv = K.inv;
@@ -1368,7 +1409,7 @@ function render() {
   const ops = { white: [v.wOp, v.wPressed, v.wFill], red: [v.rOp, v.rPressed, v.rFill], blue: [v.bOp, v.bPressed, v.bFill] };
   chips.forEach((c) => {
     const o = ops[c.dataset.theme];
-    c.style.opacity = o[0]; c.setAttribute('aria-pressed', o[1]); c.firstElementChild.style.background = o[2];
+    c.style.opacity = o[0]; c.setAttribute('aria-pressed', o[1]);
   });
   ticks.forEach((t, i) => { t.style.opacity = v.ticks[i].op; t.setAttribute('aria-current', v.ticks[i].cur); });
 }
