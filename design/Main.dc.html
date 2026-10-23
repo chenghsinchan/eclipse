@@ -25,21 +25,33 @@ a{color:#8d8a83}a:hover{color:#e9e5dc}
 .btn{-webkit-appearance:none;appearance:none;background:none;border:0;margin:0;padding:0;color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;pointer-events:auto;transition:opacity .45s ease}
 .btn:hover{opacity:1 !important}
 .btn:focus-visible{outline:1px solid currentColor;outline-offset:3px}
-.tl{position:absolute;top:24px;left:28px}
-.tr{position:absolute;top:16px;right:20px;display:flex;align-items:center}
-.chip{display:flex;align-items:center;justify-content:center;width:28px;height:28px}
-.chip span{display:block;width:9px;height:9px;box-sizing:border-box;border:1px solid currentColor}
-.bl{position:absolute;bottom:24px;left:28px;display:flex;gap:2.2em}
-.br{position:absolute;bottom:24px;right:28px;display:flex;gap:2.2em}
-.rail{position:absolute;top:96px;bottom:96px;right:16px;width:64px;pointer-events:auto;cursor:ns-resize;touch-action:none}
-.line{position:absolute;top:0;bottom:0;right:12px;width:1px;background:currentColor;opacity:0.2}
-.thumb{position:absolute;top:0;right:11px;width:3px;height:40px;background:currentColor;will-change:transform}
-.tick{position:absolute;right:12px;width:9px;height:1px;background:currentColor;opacity:0.45}
-.lab{position:absolute;right:28px;font-size:10px;line-height:1;padding:6px 0;margin-top:-11px}
-@media (max-width:760px){.tl{left:18px;top:18px}.bl{left:18px;bottom:18px}.br{right:18px;bottom:18px}.rail{right:4px;top:80px;bottom:80px}.tr{top:10px;right:10px}}
+.root{position:relative;width:100%;height:100vh;height:100dvh;overflow:hidden;background:#000;touch-action:none;cursor:crosshair}
+.tl{position:absolute;top:max(24px,env(safe-area-inset-top));left:max(28px,env(safe-area-inset-left))}
+.tr{position:absolute;top:max(16px,env(safe-area-inset-top));right:max(20px,env(safe-area-inset-right));display:flex;align-items:center}
+.chip{display:flex;align-items:center;justify-content:center;width:30px;height:30px}
+.chip span{display:block;width:9px;height:9px;box-sizing:border-box;border:1px solid currentColor;transition:background .5s ease}
+.rail{position:absolute;top:96px;bottom:112px;right:max(14px,env(safe-area-inset-right));width:68px;pointer-events:auto;cursor:ns-resize;touch-action:none}
+.line{position:absolute;top:20px;bottom:20px;right:14px;width:1px;background:currentColor;opacity:0.18}
+.nav{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;fill:currentColor}
+.ring{fill:none;stroke:currentColor;stroke-width:1}
+.lab{position:absolute;right:34px;font-size:10px;line-height:1;padding:9px 6px;margin-top:-14px}
+.foot{position:absolute;left:max(28px,env(safe-area-inset-left));right:max(28px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:24px;align-items:end}
+.foot p{margin:0;display:flex;gap:0.45em 0;flex-wrap:wrap}
+.f1{gap:2.2em !important}
+.kv{display:grid !important;grid-template-columns:1.3em 4.2em 1.3em 4.2em}
+.k{opacity:0.55}
+@media (max-width:760px){
+.tl{top:max(18px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left))}
+.tr{top:max(10px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right))}
+.foot{left:max(18px,env(safe-area-inset-left));right:max(18px,env(safe-area-inset-right));bottom:max(18px,calc(env(safe-area-inset-bottom) + 4px));grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px}
+.w{display:none !important}
+.f2{justify-self:end}
+.rail{right:max(2px,env(safe-area-inset-right));top:84px;bottom:76px}
+}
+@media (max-height:520px){.rail{top:56px;bottom:56px}.lab{display:none}}
 </style>
 </helmet>
-<main ref="{{ setRoot }}" data-ec="root" class="ec" aria-label="ECLIPSE — an interactive total solar eclipse" style="position: relative; width: 100%; height: 100vh; overflow: hidden; background: #000000; touch-action: none; cursor: crosshair">
+<main ref="{{ setRoot }}" data-ec="root" class="ec root" aria-label="ECLIPSE — an interactive total solar eclipse">
 <canvas ref="{{ setCanvas }}" data-ec="canvas" aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; background: #000000"></canvas>
 <p class="sr">A total solar eclipse rendered in real time. Move the pointer to attract the corona, press and hold to intensify the pull, and scroll or drag the rail on the right to travel through seven phases.</p>
 <div class="g" style="color: {{ ink }}; opacity: {{ uiOp }}">
@@ -51,14 +63,38 @@ a{color:#8d8a83}a:hover{color:#e9e5dc}
 </div>
 <div data-ec="rail" class="rail" role="group" aria-label="Phases">
 <div class="line"></div>
+<svg class="nav" aria-hidden="true">
+<defs>
+<filter id="ecgoo" x="-60%" y="-10%" width="220%" height="120%">
+<feGaussianBlur in="SourceGraphic" stdDeviation="2" result="b"></feGaussianBlur>
+<feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="g"></feColorMatrix>
+<feComposite in="SourceGraphic" in2="g" operator="atop"></feComposite>
+</filter>
+</defs>
+<g filter="url(#ecgoo)">
+<circle data-ec="s0" cx="-40" cy="-40" r="2"></circle>
+<circle data-ec="s1" cx="-40" cy="-40" r="2"></circle>
+<circle data-ec="s2" cx="-40" cy="-40" r="2"></circle>
+<circle data-ec="s3" cx="-40" cy="-40" r="2"></circle>
+<circle data-ec="s4" cx="-40" cy="-40" r="2"></circle>
+<circle data-ec="s5" cx="-40" cy="-40" r="2"></circle>
+<circle data-ec="s6" cx="-40" cy="-40" r="2"></circle>
+<circle data-ec="drop" cx="-40" cy="-40" r="4"></circle>
+<circle data-ec="sun" cx="-40" cy="-40" r="6.5"></circle>
+</g>
+<circle data-ec="ring" class="ring" cx="-40" cy="-40" r="10" opacity="0"></circle>
+<circle data-ec="moon" cx="-40" cy="-40" r="6.7" fill="#000000"></circle>
+</svg>
 <sc-for list="{{ ticks }}" as="tk" hint-placeholder-count="7">
-<div class="tick" style="top: {{ tk.top }}"></div>
 <button type="button" class="btn t tab lab" onClick="{{ tk.go }}" aria-label="{{ tk.aria }}" aria-current="{{ tk.cur }}" style="top: {{ tk.top }}; opacity: {{ tk.op }}">{{ tk.no }}</button>
 </sc-for>
-<div data-ec="thumb" class="thumb"></div>
 </div>
-<p class="t tab bl"><span>{{ phaseNo }}</span><span>{{ phaseName }}</span></p>
-<p class="t tab br" aria-hidden="true"><span>{{ dist }}</span><span>{{ hold }}</span></p>
+<div class="foot t tab">
+<p class="f1"><span>{{ phaseNo }}</span><span>{{ phaseName }}</span></p>
+<p class="f2 kv" aria-hidden="true"><span class="k">G</span><span>{{ pull }}</span><span class="k">r</span><span>{{ dist }}</span></p>
+<p class="kv w" aria-hidden="true"><span class="k">θ</span><span>{{ ang }}</span><span class="k">t</span><span>{{ hold }}</span></p>
+<p class="kv w" aria-hidden="true"><span class="k">Φ</span><span>{{ prog }}</span><span class="k">n</span><span>{{ count }}</span></p>
+</div>
 </div>
 <p ref="{{ setFallback }}" data-ec="fallback" style="position: absolute; top: 50%; left: 0; right: 0; margin: 0; text-align: center; font-family: 'Inter Tight', Helvetica, Arial, sans-serif; font-size: 13px; color: #8d8a83; opacity: 0; pointer-events: none">This work needs a browser with WebGL 2.</p>
 </main>
@@ -102,8 +138,12 @@ class Component extends DCLogic {
       wFill: sel('white') ? 'currentColor' : 'transparent',
       rFill: sel('red') ? (inv ? 'currentColor' : '#ff2b14') : 'transparent',
       bFill: sel('blue') ? (inv ? 'currentColor' : '#2950ff') : 'transparent',
+      pull: st.pull || '0.00',
       dist: st.dist || '—',
-      hold: st.hold || '(0.0)'
+      ang: st.ang || '—',
+      hold: st.hold || '0.0',
+      prog: st.prog || '0.000',
+      count: st.count || '—'
     });
   }
 
@@ -919,7 +959,58 @@ void main() {
     const local = (e) => { const r = root.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; };
     const advance = (d) => { pT = clamp(pT + d, 0, 1); };
     const onUI = (e) => !!(e.target && e.target.closest && e.target.closest('button, [data-ec="rail"]'));
-    const rail = root.querySelector('[data-ec="rail"]'), thumb = root.querySelector('[data-ec="thumb"]');
+    const rail = root.querySelector('[data-ec="rail"]');
+    const q = (k) => (rail ? rail.querySelector('[data-ec="' + k + '"]') : null);
+    const NAV = { stops: [0, 1, 2, 3, 4, 5, 6].map((i) => q('s' + i)), sun: q('sun'), drop: q('drop'), moon: q('moon'), ring: q('ring') };
+    const STOPF = [0, 0.15, 0.3, 0.47, 0.655, 0.79, 1];
+    let navY = 0, navV = 0, dropY = 0, dropV = 0, navInit = false, navTug = 0, navTugX = 0, navTugY = 0;
+    const setA = (el, k, v) => {
+      if (!el) return;
+      const sv = typeof v === 'number' ? v.toFixed(2) : v;
+      const c = el.__ec || (el.__ec = {});
+      if (c[k] !== sv) { el.setAttribute(k, sv); c[k] = sv; }
+    };
+    // The rail as a small eclipse: a light disc rides the scroll on a spring, a trailing
+    // droplet and the seven stops melt into it, and a dark disc crosses it phase by phase.
+    function nav(dt, pull, dirX, dirY, groundCss) {
+      if (!rail || !NAV.sun) return;
+      const H = rail.clientHeight, W = rail.clientWidth;
+      if (H < 80) return;
+      const x = W - 14.5, top = 20, span = H - 40;
+      const target = top + pS * span;
+      const h = Math.min(dt, 1 / 30);
+      if (!navInit) { navY = dropY = target; navInit = true; }
+      navV += (210 * (target - navY) - 26 * navV) * h; navY += navV * h;
+      dropV += (60 * (navY - dropY) - 9 * dropV) * h; dropY += dropV * h;
+      const R = 6.5;
+      for (let i = 0; i < 7; i++) {
+        const y = top + STOPF[i] * span;
+        const d = Math.abs(y - navY);
+        setA(NAV.stops[i], 'cx', x);
+        setA(NAV.stops[i], 'cy', y);
+        setA(NAV.stops[i], 'r', 2.6 + 2.4 * Math.exp(-(d * d) / 420));
+      }
+      const speed = Math.min(1, Math.abs(navV) / 600);
+      setA(NAV.sun, 'cx', x); setA(NAV.sun, 'cy', navY); setA(NAV.sun, 'r', R * (1 - 0.12 * speed));
+      setA(NAV.drop, 'cx', x); setA(NAV.drop, 'cy', dropY); setA(NAV.drop, 'r', R * (0.35 + 0.35 * Math.min(1, Math.abs(dropY - navY) / 14)));
+      const p = pS;
+      let off = 0, mr = R * 1.04;
+      if (p < 0.26) off = (1 - smooth(0, 0.26, p)) * 2.4 * R;
+      else if (p >= 0.66 && p < 0.86) mr = R * (1.04 + 0.95 * smooth(0.66, 0.84, p));
+      else if (p >= 0.86) mr = R * 1.99 * (1 - smooth(0.86, 1.0, p));
+      // gravity tugs the light toward the hand: the dark disc yields the other way
+      const kk = 1 - Math.exp(-h * 6);
+      navTug += (pull - navTug) * kk; navTugX += (dirX - navTugX) * kk; navTugY += (dirY - navTugY) * kk;
+      const tug = navTug * R * 0.75;
+      setA(NAV.moon, 'cx', x + off - navTugX * tug);
+      setA(NAV.moon, 'cy', navY + navTugY * tug);
+      setA(NAV.moon, 'r', mr);
+      setA(NAV.moon, 'fill', groundCss);
+      const ringOp = smooth(0.2, 0.28, p) * (1 - smooth(0.68, 0.8, p)) * 0.8 + smooth(0.9, 1, p) * 0.55;
+      setA(NAV.ring, 'cx', x); setA(NAV.ring, 'cy', navY);
+      setA(NAV.ring, 'r', R * 1.6 + navTug * 4);
+      setA(NAV.ring, 'opacity', ringOp);
+    }
     let scrub = null;
     const railTo = (e) => { const r = rail.getBoundingClientRect(); pT = clamp((e.clientY - r.top - 20) / Math.max(1, r.height - 40), 0, 1); flingV = 0; };
     const onRailDown = (e) => { if (e.target.closest && e.target.closest('button')) return; e.preventDefault(); scrub = e.pointerId; railTo(e); try { rail.setPointerCapture(e.pointerId); } catch (err) {} };
@@ -1010,7 +1101,8 @@ void main() {
     let T = 0, simAcc = 0, intro = 0, life = 0;
     let wx = 6, wy = 6, wvx = 0, wvy = 0, wellInit = false;
     let G = 0, R = 0.6, lensA = 0, lensV = 0, holdC = 0;
-    let perfAcc = 0, perfN = 0, repAcc = 1, lastThumb = -1;
+    let perfAcc = 0, perfN = 0, repAcc = 1;
+    const GMAX = 34 * 1.7;
     const SUB = 1 / 120;
     let last = performance.now(), raf = 0, dead = false;
 
@@ -1046,10 +1138,6 @@ void main() {
 
       if (Math.abs(flingV) > 1e-4) { advance(flingV * dt); flingV *= Math.exp(-dt * 3.2); }
       pS += (pT - pS) * (1 - Math.exp(-dt * (scrub !== null ? 5 : REDUCE ? 3.5 : 1.9)));
-      if (thumb && rail) {
-        const ty0 = Math.round(pS * Math.max(0, rail.clientHeight - 40) * 10) / 10;
-        if (ty0 !== lastThumb) { thumb.style.transform = 'translateY(' + ty0 + 'px)'; lastThumb = ty0; }
-      }
       sampleKF(pS);
       intro = Math.min(1, intro + dt / 4.5);
       const quiet = 1 - 0.45 * smooth(0.74, 0.84, pS) * (1 - smooth(0.86, 0.95, pS));
@@ -1086,6 +1174,13 @@ void main() {
       lensA = clamp(lensA + lensV * dt, -0.25, 1.1);
       if (!isFinite(G + R + lensA + lensV + holdC + wx + wy + wvx + wvy)) { G = 0; R = 0.6; lensA = 0; lensV = 0; holdC = 0; wx = tx; wy = ty; wvx = 0; wvy = 0; }
       if (pointerIn && G > 1 && !interacted) { hoverTime += dt; if (hoverTime > 6) interacted = true; }
+
+      {
+        const dl = Math.hypot(tx, ty) + 1e-6;
+        const iv = K.inv;
+        const gc = 'rgb(' + Math.round(curPaper[0] * iv * 240) + ',' + Math.round(curPaper[1] * iv * 240) + ',' + Math.round(curPaper[2] * iv * 240) + ')';
+        nav(dt, pointerIn ? clamp(G / (GMAX * 0.6), 0, 1) : 0, tx / dl, ty / dl, gc);
+      }
 
       // the light
       restShape(T, K.fil, nAct, K.swirl);
@@ -1200,11 +1295,17 @@ void main() {
         let ph = 0;
         while (ph < PH_EDGES.length && pS >= PH_EDGES[ph]) ph++;
         const dist = Math.sqrt(tx * tx + ty * ty);
+        let ang = Math.atan2(ty, tx) * 180 / PI;
+        if (ang < 0) ang += 360;
         report({
           phase: ph,
           inv: inv > 0.5,
-          hold: '(' + ht.toFixed(1) + ')',
-          dist: pointerIn ? dist.toFixed(2) : '—'
+          pull: clamp(G / GMAX, 0, 1).toFixed(2),
+          hold: ht.toFixed(1),
+          dist: pointerIn ? dist.toFixed(2) : '—',
+          ang: pointerIn ? Math.round(ang) + '°' : '—',
+          prog: pS.toFixed(3),
+          count: String(nPts)
         });
       }
     }
